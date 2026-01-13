@@ -64,6 +64,8 @@ def main():
     existing_records = load_existing_records(db)
     md_files = scan_markdown_files(docs_path)
 
+    docs_before = len(existing_records)
+
     if not md_files:
         print("No markdown files found")
         sys.exit(0)
@@ -71,6 +73,7 @@ def main():
     exceeded_limit = False
     new_records = []
     current_filenames = set()
+    stats = {"new": 0, "updated": 0, "unchanged": 0}
 
     for md_file in md_files:
         relative_path = str(md_file.relative_to(docs_path))
@@ -89,12 +92,15 @@ def main():
             existing = existing_records[relative_path]
             if existing["hash"] == content_hash:
                 print(f"Unchanged: {relative_path}")
+                stats["unchanged"] += 1
                 new_records.append(existing)
                 continue
             else:
                 print(f"Updated: {relative_path}")
+                stats["updated"] += 1
         else:
             print(f"New: {relative_path}")
+            stats["new"] += 1
 
         embedding = get_embedding(client, content)
         new_records.append({
@@ -112,7 +118,16 @@ def main():
         db.drop_table(TABLE_NAME)
 
     db.create_table(TABLE_NAME, new_records)
-    print(f"Stored {len(new_records)} document(s) in {args.db}")
+
+    docs_after = len(new_records)
+    print()
+    print("Statistics:")
+    print(f"  Documents before: {docs_before}")
+    print(f"  Documents after:  {docs_after}")
+    print(f"  New:       {stats['new']}")
+    print(f"  Updated:   {stats['updated']}")
+    print(f"  Unchanged: {stats['unchanged']}")
+    print(f"  Deleted:   {deleted_count}")
 
     if exceeded_limit:
         print("Exiting with error: one or more files exceeded the character limit")
