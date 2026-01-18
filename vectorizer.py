@@ -119,10 +119,9 @@ async def run(args):
     db = AsyncSurreal(host)
     await db.__aenter__()
     await db.signin({
+        "namespace": namespace,
         "username": user,
         "password": password,
-        "namespace": namespace,
-        "database": database,
     })
     await db.use(namespace, database)
 
