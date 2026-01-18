@@ -86,6 +86,50 @@ docker run \
 | `--database` | `SURREAL_DB` | SurrealDB database |
 | `--openai-key` | `OPENAI_API_KEY` | OpenAI API key |
 
+### GitHub Actions
+
+Example workflow to index your repository's markdown files on every push:
+
+```yaml
+name: Index Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+
+jobs:
+  vectorize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run vectorizer
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/docs:/docs \
+            -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            -e SURREAL_HOST=${{ vars.SURREAL_HOST }} \
+            -e SURREAL_USER=${{ vars.SURREAL_USER }} \
+            -e SURREAL_PASSWORD=${{ secrets.SURREAL_PASSWORD }} \
+            -e SURREAL_NS=${{ vars.SURREAL_NS }} \
+            -e SURREAL_DB=${{ vars.SURREAL_DB }} \
+            ghcr.io/${{ github.repository_owner }}/vectorizer:main \
+            --docs /docs
+```
+
+**Required secrets:**
+- `OPENAI_API_KEY` - OpenAI API key for embeddings
+- `SURREAL_PASSWORD` - SurrealDB password
+
+**Required variables:**
+- `SURREAL_HOST` - SurrealDB connection URL
+- `SURREAL_USER` - SurrealDB username
+- `SURREAL_NS` - SurrealDB namespace
+- `SURREAL_DB` - SurrealDB database
+
 ## Incremental Updates
 
 The vectorizer only recomputes embeddings for files that have changed:
